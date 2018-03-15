@@ -3,7 +3,7 @@
 source("../scripts/coulterZ2reader.R")
 
 # Read in all the Z2 files from a dir. Extension can be changed.
-some_datar <- coulterZ2reader("data/example_coulter_counter/")
+some_datar <- read_directory_of_Z2("data/example_coulter_counter/")
 
 # To make things tidier later
 library(tidyverse)
