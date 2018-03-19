@@ -1,0 +1,50 @@
+
+
+snakemake -j 999 --cluster-config cluster.json --cluster "sbatch -A {cluster.account} -p {cluster.partition} -n {cluster.n}  -t {cluster.time}"
+
+
+##SBATCH --nodes=1
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=1:00:00
+#SBATCH --mem=4GB
+#SBATCH --job-name=myMatlabTest
+#SBATCH --mail-type=END
+##SBATCH --mail-user=bob.smith@nyu.edu
+#SBATCH --output=slurm_%j.out
+
+module purge
+module load matlab/2016b
+
+/scratch/cgsb/gencore/out/Gresham/2017-04-14_AVA3A
+#!/bin/bash
+
+export BARNONE="barnone/intel/20170501"
+
+
+module purge
+module load ${BARNONE}
+
+echo
+echo "Gonna barnone ${i}";
+echo "==="
+
+sbatch --mail-type=BEGIN,END,FAIL --mail-user=zerp@nyu.edu 
+  --job-name=whatever --output=this.out 
+  --error=that.err 
+ # TASK_RESOURCES go here
+# task string goes here
+
+# below is the command
+#BarNone -f fastq --multiplexfile ${DATA}/sampleBarcodesRobinson2014.txt --multiplexstart 1 --multiplexlength 5 --tagstart 18 --taglength 3 --start 9 --mismatches ${j} --mismatchfile ${BASENAME}.barnone_${j}.mismatches --revisedcatalog ${BASENAME}.barnone_${j}.revised -p 500000 $i ${BASENAME}.barnone_${j}.counts.txt ${DATA}/strainBarcodesNislowRevision.txt ;
+
+echo $RUNSTRING
+eval $(echo "$RUNSTRING")
+
+echo "==="
+echo "Done barnone ${i}"
+echo
+
+
+
