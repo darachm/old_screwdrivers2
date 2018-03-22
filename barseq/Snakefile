@@ -3,6 +3,9 @@ account="dhm267"
 rule all:
   input: expand("barseqSortedOnGAP1GFP_M{mismatches}.counts",mismatches=[0])
 
+# make tmp folder
+
+
 rule gunzip_fastq:
   input:
     gzipped="/scratch/cgsb/gencore/out/Gresham/2017-04-14_AVA3A/1/000000000-AVA3A_l01n01.3310000008a5cf.fastq.gz"
@@ -50,3 +53,8 @@ rule barnone:
       '
     """
 
+grep 'Note=Dubious' ../ref/S288C_reference_genome_R64-2-1_20150113/saccharomyces_cerevisiae_R64-2-1_20150113.gff > tmp/dubious_orfs.gff
+grep -v '#' ../ref/S288C_reference_genome_R64-2-1_20150113/saccharomyces_cerevisiae_R64-2-1_20150113.gff | grep -v 'Note=Dubious' | grep 'gene' > tmp/notdubious_orfs.gff
+bedtools slop -b 200 -i tmp/notdubious_orfs.gff -g ../ref/S288C_reference_genome_R64-2-1_20150113/saccharomyces_cerevisiae_R64-2-1_20150113.fasta.fai > tmp/notdubious_expanded_orfs.gff 
+bedtools subtract -a tmp/dubious_orfs.gff -b tmp/notdubious_expanded_orfs.gff > tmp/dorfs_no_overlap.gff
+grep -o 'ID=[^;]\+;' tmp/dorfs_no_overlap.gff | sed 's/ID=//g' | sed 's/;//' > tmp/dorfs_no_overlap_list.txt
