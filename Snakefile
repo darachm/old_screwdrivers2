@@ -1,3 +1,8 @@
+
+
+# go in each folder, zip up data into a thing
+
+
 account="dhm267"
 
 rule all:
@@ -66,3 +71,4 @@ archive_examples_data.zip : examples/data/
 .PHONY: unpack
 unpack:
 	unzip archive_examples_data.zip
+Rscript -e rmarkdown::render('term_enrichment_clusterProfiler.Rmd')
