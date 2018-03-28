@@ -14,3 +14,9 @@ extract the datasets. Then, it should pretty much just work.
 This is for parsing the Z2 files. Note that it takes out the volume
 and dilution factor, but does not use those yet.
 You can see this in use with the file in the examples directory.
+
+# Term enrichment
+
+Example of using `cluterProfiler`
+
+https://www.bioconductor.org/packages/release/bioc/vignettes/clusterProfiler/inst/doc/clusterProfiler.html

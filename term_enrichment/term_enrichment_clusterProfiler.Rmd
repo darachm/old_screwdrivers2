@@ -186,7 +186,7 @@ for (varz in c("PostShift_Mean","PreShift_Mean","Change_Mean")) {
       TERM2NAME=SGDGOTerms[,c("GOID","X2")],
       minGSSize=3,maxGSSize=500,
       pAdjustMethod="fdr",
-      pvalueCutoff=0.1,seed="seedy",
+      pvalueCutoff=0.3,seed="seedy",
       nPerm=nPermutations
       )@result %>% as_tibble() %>% mutate(Variable=varz)
     }
@@ -202,7 +202,7 @@ for (varz in c("PostShift_Mean","PreShift_Mean","Change_Mean")) {
 gseGOtable <- bind_rows(GSEAResults) %>% as_tibble %>% 
     # First we bind rows and make it a tibble
   dplyr::select(Variable,ID,Description,enrichmentScore,p.adjust
-    ,setSize,rank) %>%
+    ,setSize) %>%
     # Then we pick the variables we want
   arrange(Variable,-enrichmentScore)
 
