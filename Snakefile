@@ -16,7 +16,33 @@ rule unarchive:
     unzip archive.zip
     """
 
-#Rscript -e rmarkdown::render('term_enrichment_clusterProfiler.Rmd')
+#####
+#####
+#####
+#####
+#####
+
+term_enrichment_data = [ "Figure4_Table_BFFfilteredPooledModels.csv",
+  "sgd_go_slim_171013.txt","sgd_go_full_171013.txt",
+  "sgd_go_terms_171013.txt" ]
+
+rule term_enrichment:
+  input: expand("term_enrichment/data/{file}",file=term_enrichment_data),
+    rmd="term_enrichment/term_enrichment_clusterProfiler.Rmd"
+  output: "term_enrichment/output_table_categorical.csv",
+    "term_enrichment/output_table_GSEA.csv",
+    "term_enrichment/term_enrichment_clusterProfiler.html",
+  shell:
+    """
+    Rscript -e "rmarkdown::render('{input.rmd}')"
+    """
+
+#####
+#####
+#####
+#####
+#####
+
 
 #rule all:
 #  input: expand("barseqSortedOnGAP1GFP_M{mismatches}.counts",mismatches=[0])
@@ -78,3 +104,4 @@ rule unarchive:
 #grep -o 'ID=[^;]\+;' tmp/dorfs_no_overlap.gff | sed 's/ID=//g' | sed 's/;//' > tmp/dorfs_no_overlap_list.txt
 #
 #
+

@@ -125,7 +125,7 @@ categoricalGOtable <- bind_rows(CategoricalGO) %>% as_tibble %>%
   arrange(Type,-qvalue)
 ```
 
-```{r,categoricalGOprint,cache=T}
+```{r,categoricalGOprint,cache=F}
 write_lines("#
 # Supplementary Table
 #
@@ -173,7 +173,7 @@ head(this_gene_list)
 ```
 
 ```{r,single,dependson="sortedGeneList",cache=T}
-GSEAResults[["PostShift_Mean"]] <- clusterProfiler::GSEA(
+singleRun <- clusterProfiler::GSEA(
   geneList=this_gene_list,
     # This is then piped into GSEA function as the gene list
   TERM2GENE=SGDGOSlim[,c("X6","X3")],
@@ -190,6 +190,8 @@ GSEAResults[["PostShift_Mean"]] <- clusterProfiler::GSEA(
     # This sets the permutations for the boostrapped p-value, and
     # the random seed
   )@result %>% as_tibble() 
+
+head(singleRun)
 ```
 
 At the end there, it's pulled out using the `@result` accessor from
@@ -237,14 +239,16 @@ for (varz in c("PostShift_Mean","PreShift_Mean","Change_Mean")) {
 
 Once done, we can print this sucker out as a CSV.
 
-```{r,printOut,cache=T}
+```{r,tableOut,cache=T}
 gseGOtable <- bind_rows(GSEAResults) %>% as_tibble %>% 
     # First we bind rows and make it a tibble
   dplyr::select(Variable,ID,Description,enrichmentScore,p.adjust
     ,setSize) %>%
     # Then we pick the variables we want
   arrange(Variable,-enrichmentScore)
+```
 
+```{r,printOut,cache=T}
 write_lines("#
 # Supplementary Table
 #
