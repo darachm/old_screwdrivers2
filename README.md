@@ -1,3 +1,11 @@
+TODO:
+
+- Make central `Snakefile` to handle all data archiving/un, etc.
+- Extend `clusterProfiler` to arbitrary and KEGG
+
+
+---
+
 This is a few files that might be useful. Use at own risk.
 
 In `scripts` are scripts that are intended for others to use. 

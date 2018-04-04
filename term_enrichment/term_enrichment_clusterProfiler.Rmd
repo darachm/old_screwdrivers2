@@ -4,14 +4,22 @@ author: "Darach"
 date: "`r Sys.Date()`"
 ---
 
-```{r,libs,cache=F}
+```{r,libs,cache=F,warning=F,message=F}
 library(tidyverse)
-library(clusterProfiler)
-library(org.Sc.sgd.db)
 ```
 
-```{r,getGOtermz,cache=T}
+# Preliminaries
 
+Here, we read in a few tables. These were downloaded from SGD,
+so the GO slim terms are from 
+[https://downloads.yeastgenome.org/curation/literature/go_slim_mapping.tab](
+https://downloads.yeastgenome.org/curation/literature/go_slim_mapping.tab)
+and the rest are likely from 
+[http://www.geneontology.org/page/download-go-annotations](
+http://www.geneontology.org/page/download-go-annotations).
+Then, I make a tibble that is handy for later mappings.
+
+```{r,getGOtermz,cache=T,message=F}
 # GOSlim annotation table
 read_tsv("data/sgd_go_slim_171013.txt",col_names=F,
   comment="!") -> SGDGOSlim
@@ -38,65 +46,86 @@ SystematicToSGDIDmapper <- SGDGOSlim%>%
 Here's the data. It's from the Barseq after FACS after FISH, aka
 the Great Red Herring Fishing Expedition of 2015-2017. 
 
-```{r,dataToAnalyze,cache=T}
+```{r,dataToAnalyze,cache=T,message=F,warning=F}
 datar <- read_csv("data/Figure4_Table_BFFfilteredPooledModels.csv",
   comment="#",
   col_names=c("Systematic","Common","PreShift_Mean",
     "PostShift_Mean","Change_Mean","ResidualFromExpected_Mean"))
-
-ggplot(datar)+aes(x=PostShift_Mean)+geom_histogram(bins=50)
 ```
 
-We could do a categorical test. That's fast. For this, I'm going
+The data has a few columns. Namely, there's the mean signal before
+and after a shift. What does this sorta look like? Well, we could
+look at the distribution of this mean after the shift for all
+strains, and draw a line at 7.5 for reasons that will become clear.
+
+```{r,histogram,cache=T,warning=F}
+ggplot(datar)+aes(x=PostShift_Mean)+geom_histogram(bins=50)+
+  geom_vline(xintercept=7.5)
+```
+
+# Categorical GO, using the Bioconductor database package
+
+We could do a categorical test of what's above that 7.5 line.
+That's fast to compute. For this, I'm going
 to use the `bitr` function from `clusterProfiler`.
+Note that I'm using the double colon notation to avoid loading
+the package, because it carries with it a bunch of `bioconductor`
+cruft.
 
-First, we make two lists of IDs with this. So that's just separating
-on the mean being more than 7.5, and making a query and background
-set.
+First, we make two lists of IDs, just separating
+on the mean being more than 7.5, 
+and making a query and background set.
 
-```{r,clusterProfilerSetupCateogries,cache=T}
-library(clusterProfiler)
-
+```{r,clusterProfilerSetupCateogries,cache=T,message=F}
 TopPostShift_Entrez <- datar%>% filter(PostShift_Mean>7.5)%>%
   left_join(SystematicToSGDIDmapper,by="Systematic")%>%
-  {bitr(.$SGDID,fromType="SGD",toType="ENTREZID"
-    ,OrgDb=org.Sc.sgd.db,drop=T)} %>%
+  {clusterProfiler::bitr(.$SGDID,fromType="SGD",toType="ENTREZID"
+    ,OrgDb=org.Sc.sgd.db::org.Sc.sgd.db,drop=T)} %>%
   pull(ENTREZID)
 
 Background_Entrez <- datar%>% 
   left_join(SystematicToSGDIDmapper,by="Systematic")%>%
-  {bitr(.$SGDID,fromType="SGD",toType="ENTREZID"
-    ,OrgDb=org.Sc.sgd.db,drop=T)} %>%
+  {clusterProfiler::bitr(.$SGDID,fromType="SGD",toType="ENTREZID"
+    ,OrgDb=org.Sc.sgd.db::org.Sc.sgd.db,drop=T)} %>%
   pull(ENTREZID)
 
+head(TopPostShift_Entrez)
+head(Background_Entrez)
 ```
 
-Then testing these for each category of GO terms.
+Note that these are now lists of ENTREZ IDs. Note that some of the
+terms didn't translate over, so we're missing those.
 
-```{r,categoricalGO,cache=T}
+Let's test these for each category of GO terms, look for enrichment.
 
+```{r,categoricalGOenrichment,cache=T}
 CategoricalGO <- list()
 
 for (i in c("MF","BP","CC")) {
-  CategoricalGO[[i]] <- enrichGO(
+  CategoricalGO[[i]] <- clusterProfiler::enrichGO(
       gene=TopPostShift_Entrez,
       universe=Background_Entrez,
-      OrgDb=org.Sc.sgd.db,
+      OrgDb=org.Sc.sgd.db::org.Sc.sgd.db,
       ont=i,
       pAdjustMethod="fdr",
       qvalueCutoff=0.20,
       minGSSize=2,maxGSSize=200)@result%>%
     as_tibble()%>%mutate(Type=i)
 }
+```
 
+At each step, 
+
+```{r,categoricalGOtable,cache=T}
 categoricalGOtable <- bind_rows(CategoricalGO) %>% as_tibble %>% 
     # First we bind rows and make it a tibble
   dplyr::select(Type,ID,Description,qvalue,
     Count,geneID) %>%
     # Then we pick the variables we want
   arrange(Type,-qvalue)
+```
 
-
+```{r,categoricalGOprint,cache=T}
 write_lines("#
 # Supplementary Table
 #
@@ -106,36 +135,25 @@ write_lines("#
 # Key:
 # Type of enrichment , GO term ID , GO term , q-value , 
 #   size of GO term count , geneIDs in this",
-  path="output_table_a.csv")
+  path="output_table_categorical.csv")
 
 categoricalGOtable %>% 
-  write_csv(path="output_table_a.csv",append=T)
-
+  write_csv(path="output_table_categorical.csv",append=T)
 ```
+
+# GSEA using custom terms
 
 Okay, but what about GSEA?
 
 So, let's sort the names by that variables, and then see who's 
-enriched. First, I do one variable, then I do it in a loop.
+enriched. 
 
-I set up a parameter of number of permutations. 
-`1e6` takes *forever* to run. So test it out with high p.adjust and
-low permutes, then move it up to ~`1e6` or so. You need high
-permutations to make claims about stuff rare enough to survive
-p-value adjustment as significant, so test on low significance and
-then let it run in looking for real significance.
 
-```{r,clusterProfilerSetup,cache=T}
-nPermutations <- 1e6
+First we do one, as a stripped down example. Then we move to doing
+lots in a loop. 
+For both, we're going to make our sorted gene list:
 
-# A list for results holding
-GSEAResults <- list()
-```
-
-```{r,GSEAfromSort,dependson="clusterProfilerSetup",cache=T}
-
-# Doing one
-
+```{r,sortedGeneList,cache=T}
 # First, we make a named list of values, and sort by it
 this_gene_list <- 
   datar[order(datar[["PostShift_Mean"]],decreasing=T),] %>%
@@ -151,7 +169,11 @@ this_gene_list <-
     # PostShift_Mean as the SGD ID's. This is na.omited, then c'd
     # into a plain named vector.
 
-GSEAResults[["PostShift_Mean"]] <- GSEA(
+head(this_gene_list)
+```
+
+```{r,single,dependson="sortedGeneList",cache=T}
+GSEAResults[["PostShift_Mean"]] <- clusterProfiler::GSEA(
   geneList=this_gene_list,
     # This is then piped into GSEA function as the gene list
   TERM2GENE=SGDGOSlim[,c("X6","X3")],
@@ -162,25 +184,44 @@ GSEAResults[["PostShift_Mean"]] <- GSEA(
     # This controls the tested gene set sizes
   pAdjustMethod="fdr",
     # This sets the method of p-value adjusting
-  pvalueCutoff=0.1,
+  pvalueCutoff=0.5,
     # This sets the p-value cut off
-  nPerm=nPermutations,seed="seedy"
+  nPerm=1e4,seed="seedy"
     # This sets the permutations for the boostrapped p-value, and
     # the random seed
   )@result %>% as_tibble() 
-    # Then it is pulled out and set as a tibble
+```
 
-# Doing multiple variables? One could imagine sorting each way:
+At the end there, it's pulled out using the `@result` accessor from
+the return object, then made into a tibble. I forgot what the `@` 
+thing is called, but it's like a `$`, but fundamentally different
+in a way that doesn't impact us lay user.
+
+I set up a parameter of number of permutations. 
+`1e6` takes *forever* to run. So test it out with high p.adjust and
+low permutes, then move it up to ~`1e6` or so. You need high
+permutations to make claims about stuff rare enough to survive
+p-value adjustment as significant, so test on low significance and
+then let it run in looking for real significance.
+
+Since we did this once, we can do this multiple times with a loop.
+Note this includes `system.time`ing.
+
+```{r,multiple,dependson="sortedGeneList",cache=T,eval=T}
+nPermutations <- 1e4
+
+# A list for results holding
+GSEAResults <- list()
 
 for (varz in c("PostShift_Mean","PreShift_Mean","Change_Mean")) {
   message(varz)
   message(" took ... ")
-  system.time(
+  print(system.time(
     {
     this_gene_list <- datar[order(datar[[varz]],decreasing=T),] %>%
       left_join(SystematicToSGDIDmapper,by="Systematic")%>%
       {setNames(.[[varz]],nm=.[["SGDID"]])}%>%na.omit()%>%c()
-    GSEAResults[[varz]] <- GSEA(
+    GSEAResults[[varz]] <- clusterProfiler::GSEA(
       geneList=this_gene_list,
       TERM2GENE=SGDGOSlim[,c("X6","X3")],
       TERM2NAME=SGDGOTerms[,c("GOID","X2")],
@@ -190,15 +231,13 @@ for (varz in c("PostShift_Mean","PreShift_Mean","Change_Mean")) {
       nPerm=nPermutations
       )@result %>% as_tibble() %>% mutate(Variable=varz)
     }
-  )
+  ))
 }
-
 ```
 
+Once done, we can print this sucker out as a CSV.
+
 ```{r,printOut,cache=T}
-
-# Here we make it presentable
-
 gseGOtable <- bind_rows(GSEAResults) %>% as_tibble %>% 
     # First we bind rows and make it a tibble
   dplyr::select(Variable,ID,Description,enrichmentScore,p.adjust
@@ -214,14 +253,15 @@ write_lines("#
 #
 # Key:
 # Variable sorted by , GO term ID , GO term , enrichment score , adjusted p-value , size of GO term set , rank of this set in gene list"
-  ,path="output_table.csv")
+  ,path="output_table_GSEA.csv")
 
 gseGOtable %>% 
-  write_csv(path="output_table.csv",append=T)
-
+  write_csv(path="output_table_GSEA.csv",append=T)
 ```
 
-You can also map this to KEGG terms as well.
+You can also map this to KEGG terms as well. Use 
+`clusterProfiler::enrichKEGG` similarly, but be mindful of the 
+`keyType` and translation of different identifiers.
 
 
 ```{r}
