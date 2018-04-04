@@ -1,4 +1,8 @@
 components = [ "barseq","coulter","term_enrichment" ]
+outputs = [ "term_enrichment/term_enrichment_clusterProfiler.html" ]
+
+rule all:
+  input: outputs
 
 rule archive:
   params: data_folders=expand("{folder}/data",folder=components)
@@ -14,6 +18,12 @@ rule unarchive:
   shell: 
     """
     unzip archive.zip
+    """
+
+rule map:
+  shell:
+    """
+    snakemake all --dryrun --forceall --dag | dot -Tpng > map.png
     """
 
 #####

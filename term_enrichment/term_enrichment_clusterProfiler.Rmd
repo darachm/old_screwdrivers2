@@ -210,7 +210,7 @@ Since we did this once, we can do this multiple times with a loop.
 Note this includes `system.time`ing.
 
 ```{r,multiple,dependson="sortedGeneList",cache=T,eval=T}
-nPermutations <- 1e4
+nPermutations <- 1e6
 
 # A list for results holding
 GSEAResults <- list()
