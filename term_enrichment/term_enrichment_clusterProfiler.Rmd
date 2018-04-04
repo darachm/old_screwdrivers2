@@ -1,8 +1,14 @@
 ---
-title: "Demonstrating `clusterProfiler`"
+title: "Demonstrating `clusterProfiler` for term enrichment"
 author: "Darach"
 date: "`r Sys.Date()`"
 ---
+
+To use this, you're going to need to install the libraries
+`clusterProfiler` and `org.Sc.sgd.db` from Bioconductor, using
+their own package management functions. I also make use of `tidyverse`
+because it makes more easily readable code (assuming you're familiar
+with that, but hey).
 
 ```{r,libs,cache=F,warning=F,message=F}
 library(tidyverse)
@@ -37,8 +43,8 @@ read_tsv("data/sgd_go_terms_171013.txt",col_names=F,
 
 # This is a handy table for mapping systematic names to SGD ID
 SystematicToSGDIDmapper <- SGDGOSlim%>%
-  dplyr::select(X1,X3)%>%
-  dplyr::rename(Systematic=X1,SGDID=X3)%>%
+  select(X1,X3)%>%
+  rename(Systematic=X1,SGDID=X3)%>%
   unique()
 ```
 
@@ -119,7 +125,7 @@ At each step,
 ```{r,categoricalGOtable,cache=T}
 categoricalGOtable <- bind_rows(CategoricalGO) %>% as_tibble %>% 
     # First we bind rows and make it a tibble
-  dplyr::select(Type,ID,Description,qvalue,
+  select(Type,ID,Description,qvalue,
     Count,geneID) %>%
     # Then we pick the variables we want
   arrange(Type,-qvalue)
@@ -242,7 +248,7 @@ Once done, we can print this sucker out as a CSV.
 ```{r,tableOut,cache=T}
 gseGOtable <- bind_rows(GSEAResults) %>% as_tibble %>% 
     # First we bind rows and make it a tibble
-  dplyr::select(Variable,ID,Description,enrichmentScore,p.adjust
+  select(Variable,ID,Description,enrichmentScore,p.adjust
     ,setSize) %>%
     # Then we pick the variables we want
   arrange(Variable,-enrichmentScore)

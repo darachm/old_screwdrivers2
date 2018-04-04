@@ -1,23 +1,27 @@
-components = [ "barseq","coulter","term_enrichment" ]
-outputs = [ "term_enrichment/term_enrichment_clusterProfiler.html" ]
+# This Snakefile is primarily for handling the zipping of archived
+# data, etc.
 
-rule all:
-  input: outputs
+components = [ "barseq","coulter","term_enrichment" ]
 
 rule archive:
-  params: data_folders=expand("{folder}/data",folder=components)
-  output: "archive.zip"
-  shell: 
-    """
-    zip -r {output} {params.data_folders}
-    """
+  input: expand("{each}.zip",each=components),
 
 rule unarchive:
-  input: "archive.zip"
-  output: expand("{folder}/data",folder=components)
+  input: expand("{components}",components=components)
+
+rule zipper:
+  input: "{component}"
+  output: "{component}.zip"
   shell: 
     """
-    unzip archive.zip
+    zip -r {output} {input}
+    """
+
+rule unzipper:
+  output: "{component}"
+  shell: 
+    """
+    unzip {input}
     """
 
 rule map:
@@ -31,28 +35,6 @@ rule map:
 #####
 #####
 #####
-
-term_enrichment_data = [ "Figure4_Table_BFFfilteredPooledModels.csv",
-  "sgd_go_slim_171013.txt","sgd_go_full_171013.txt",
-  "sgd_go_terms_171013.txt" ]
-
-rule term_enrichment:
-  input: expand("term_enrichment/data/{file}",file=term_enrichment_data),
-    rmd="term_enrichment/term_enrichment_clusterProfiler.Rmd"
-  output: "term_enrichment/output_table_categorical.csv",
-    "term_enrichment/output_table_GSEA.csv",
-    "term_enrichment/term_enrichment_clusterProfiler.html",
-  shell:
-    """
-    Rscript -e "rmarkdown::render('{input.rmd}')"
-    """
-
-#####
-#####
-#####
-#####
-#####
-
 
 #rule all:
 #  input: expand("barseqSortedOnGAP1GFP_M{mismatches}.counts",mismatches=[0])

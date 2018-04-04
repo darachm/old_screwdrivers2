@@ -1,0 +1,28 @@
+
+Okay, so this little folder is demonstrating how to use 
+`clusterProfiler` to do GO term and GSEA term enrichment for lists
+of yeast genes.
+It's a way to do this programaticaly so you can get it into your 
+local laptop scripting workflow, instead of having to click on things
+in a web browser. Reproducibility by scripting it.
+
+There's two analyses you can do. One is set enrichment, one is rank
+enrichment. The first requires that you have a list of gene 
+identifiers that are your set of some kind, and then you have a list
+of the background gene identifiers you're comparing these two.
+The second requires that you have all gene identifiers, and you
+order these by some value. Then the algorithm looks for enrichment of
+particular terms towards the ends of the list. 
+
+You can also use multiple sources for gene terms. One is to use
+the Bioconductor organism database definition (easiest), but you
+might also want to control terms by using the GO slim list from SGD
+or some other list more focused towards your biological question.
+Your call. 
+
+The `.Rmd` file here runs these two analyses on a gene list.
+I attempted to write it up in the Rmarkdown-esque way, but I have
+included line by line comments and you can't do that in the
+chunk-model of `knitr`. Both should be apparent in the HTML file.
+To make this, use the `rmarkdown::render` command, or use 
+`snakemake all` if you have Snakemake installed. 
