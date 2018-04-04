@@ -1,7 +1,7 @@
 # This Snakefile is primarily for handling the zipping of archived
 # data, etc.
 
-components = [ "barseq","coulter","term_enrichment" ]
+components = [ "ref","barseq","coulter","term_enrichment" ]
 
 rule archive:
   input: expand("{each}.zip",each=components),
@@ -15,13 +15,6 @@ rule zipper:
   shell: 
     """
     zip -r {output} {input}
-    """
-
-rule unzipper:
-  output: "{component}"
-  shell: 
-    """
-    unzip {input}
     """
 
 rule map:

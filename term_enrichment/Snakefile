@@ -1,0 +1,20 @@
+
+rule all:
+  input: "term_enrichment_clusterProfiler.html"
+
+  # This is the input data files
+data = [ "Figure4_Table_BFFfilteredPooledModels.csv",
+  "sgd_go_slim_171013.txt","sgd_go_full_171013.txt",
+  "sgd_go_terms_171013.txt" ]
+
+rule term_enrichment:
+  input: expand("data/{file}",file=data),
+    rmd="term_enrichment_clusterProfiler.Rmd"
+  output: "output_table_categorical.csv",
+    "output_table_GSEA.csv",
+    "term_enrichment_clusterProfiler.html",
+  shell:
+    """
+    Rscript -e "rmarkdown::render('{input.rmd}')"
+    """
+
